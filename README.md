@@ -1,6 +1,6 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 
-# OoC-GG - Design Automation for Gradient Generators for Organs-on-a-Chip
+# MMFT NORA Network-aware Optimization by Resistance Adjustment
 
 <p align="center">
   <img src="https://www.cda.cit.tum.de/research/microfluidics/logo-microfluidics-toolkit.png" width="60%" alt="MMFT Logo">
