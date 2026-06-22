@@ -104,7 +104,6 @@ def main(cfg):
                 # if required_extra_length < 0.0 + eps: TODO
                 #     # set the length to the minimal length and adapt the width instead
                 #     resistance_target = channel.calculate_hydraulic_resistance(cfg.viscosity)
-                # TODO here is a problem if the geometry of channels with fixed resistance is supposed to be updated - maybe add a check
                 if (0.0 + eps) < required_extra_length < (channel.width * 2) and channel.fixed_resistance is None: # TODO add some tolerance to minimal length
                     # Adjust the channel geometry if it cannot be placed because the required extra length is shorter than the smalles possible meander.
                     adapt_width(channel, minimal_length, cfg.channel_dim, cfg.viscosity)
