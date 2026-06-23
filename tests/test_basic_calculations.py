@@ -69,4 +69,3 @@ def test_get_meander_length_with_blocking_box(): # testing non rerouted channel
     coord_end = nodes["B"].coordinates
     d_right, d_left = get_meander_length(nodes, ch, coord_start, coord_end, [box], 0.1, vertical=False)
     assert d_right < 5.0
-

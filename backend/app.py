@@ -9,12 +9,12 @@ from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-# Add parent directory to path to import from src/
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+# Add repository root to path so the src package imports consistently.
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from config import Config
-from main import main as run_design_generator
-from graph_output import plot_network
+from src.config import Config
+from src.main import main as run_design_generator
+from src.graph_output import plot_network
 
 app = FastAPI(title="OoC Design Generator API")
 

@@ -1,6 +1,6 @@
 import math
 
-from utils import calculate_hydraulic_resistance, calculate_hydraulic_resistance_cylinder, bisect_root
+from .utils import calculate_hydraulic_resistance, calculate_hydraulic_resistance_cylinder, bisect_root
 
 eps = 1e-9
 

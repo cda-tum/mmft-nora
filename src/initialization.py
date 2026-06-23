@@ -1,8 +1,8 @@
 import math
 
-from config import Config
-from utils import calculate_hydraulic_resistance, calculate_hydraulic_resistance_cylinder
-from mf_geometry_components import Node, Channel, ExclusionZone
+from .config import Config
+from .utils import calculate_hydraulic_resistance, calculate_hydraulic_resistance_cylinder
+from .mf_geometry_components import Node, Channel, ExclusionZone
 
 cfg = Config()
 

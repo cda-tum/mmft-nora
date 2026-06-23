@@ -4,16 +4,23 @@ import ezdxf
 import math
 import numpy as np
 from collections import defaultdict
+from pathlib import Path
 
-from channel_operations import get_longest_segment
+from .channel_operations import get_longest_segment
 
 eps = 1e-10
 # via_diameter = 0.7e-3 # channel_dim["via_diameter"]  # mm TODO: use this from config.pyx
 
-def export_to_dxf(nodes, channels, channel_dim, filename="../results/output", output_path=None):
-    original_output_path = output_path
+def export_to_dxf(nodes, channels, channel_dim, filename=None, output_path=None):
     if output_path:
-        filename = output_path.replace('.dxf', '')
+        filename_prefix = Path(output_path).with_suffix("")
+    elif filename is None:
+        filename_prefix = Path(__file__).resolve().parent.parent / "results" / "output"
+    else:
+        filename_prefix = Path(filename)
+    filename_prefix.parent.mkdir(parents=True, exist_ok=True)
+    filename = str(filename_prefix)
+
     sort_channel_nodes(nodes, channels)
     channels_per_node = define_channels_per_node(nodes, channels)
     define_quads_at_nodes(nodes, channels_per_node, channels, channel_dim["via_diameter"])
@@ -23,20 +30,7 @@ def export_to_dxf(nodes, channels, channel_dim, filename="../results/output", ou
 
     layer_files = define_dxf(nodes, channels, segments, arcs, filename, channel_dim["via_diameter"])
     combined_file = define_dxf_z_stack(nodes, channels, segments, arcs, filename, channel_dim["via_diameter"])
-    
-    # # Create combined DXF if output_path was specified
-    # if original_output_path:
-    #     import shutil
-    #     from pathlib import Path
-    #     # Copy the first generated layer file to the expected output path
-    #     if layer_files and len(layer_files) > 0 and Path(layer_files[0]).exists():
-    #         shutil.copy(layer_files[0], original_output_path)
-    #         print(f"Combined DXF saved to: {original_output_path}")
-    #     else:
-    #         print(f"Warning: No layer files generated, cannot create {original_output_path}")
 
-
-    from pathlib import Path
     print(f"[DXF EXPORT] z-stack combined file: {combined_file}")
     print(f"[DXF EXPORT] z-stack size: {Path(combined_file).stat().st_size} bytes")
     

@@ -11,13 +11,16 @@ cfg = Config()
 
 param_combinations = [(2,1),(2,2),(3,1),(1,3),(3,3)] # number of modules in x and y direction TODO (1,2) does not work with the current config settings
 
-@pytest.fixture(params=param_combinations)
-def solved_network(request):
+@pytest.fixture(scope="module", params=param_combinations)
+def solved_network(request, tmp_path_factory):
     """Run the main geometry setup once and return nodes, channels, and config."""
     nx, ny = request.param
     cfg = Config()
     cfg.no_of_modules_x = nx
     cfg.no_of_modules_y = ny
+    output_dir = tmp_path_factory.mktemp(f"solved_network_{nx}_{ny}")
+    cfg.output_dxf_path = str(output_dir / "design.dxf")
+    cfg.output_preview_path = str(output_dir / "preview.png")
 
     nodes, channels, exclusion_zones, export_result = main.main(cfg)
     return nodes, channels, cfg

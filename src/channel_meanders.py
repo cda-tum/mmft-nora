@@ -2,9 +2,9 @@ import math
 
 eps = 1e-12
 
-from utils import calculate_hydraulic_resistance
-from mf_geometry_components import BoundingBox
-from channel_operations import calculate_minimal_length, check_connection_no_per_node, get_longest_segment
+from .utils import calculate_hydraulic_resistance
+from .mf_geometry_components import BoundingBox
+from .channel_operations import calculate_minimal_length, check_connection_no_per_node, get_longest_segment
 
 def initialize_bounding_boxes(nodes, channels, exclusion_zones, mixing_module, chip_layout):
     bounding_boxes = []

@@ -4,7 +4,7 @@
 import math
 import heapq
 
-from mf_geometry_components import ExclusionZone
+from .mf_geometry_components import ExclusionZone
 
 eps = 1e-12
 

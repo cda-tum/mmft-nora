@@ -1,16 +1,16 @@
 # Define channels for non-linear Gradient Generator for barrier OoCs
 import matplotlib.pyplot as plt
 
-from initialization import initialize_nodes, initialize_channels, initialize_exclusion_zones, get_organ_module_flow_rate_bottom, get_total_chip_flow_rate_out
-from channel_operations import calculate_minimal_length, assign_initial_lengths, update_length, adapt_width, limit_width, sort_channels_by_required_length_increase, calculate_pressure_drop
-from modified_nodal_analysis import iterative_nodal_analysis
-from rerouting import reroute_channel, is_in_exclusion, check_overlap
-from channel_meanders import initialize_bounding_boxes, define_meander, assign_extra_length_to_connected_channel
-from graph_output import plot_nodes, plot_network, plot_pressure_network #, plot_network_3d
-from export import export_to_dxf
-from evaluation import generate_simulation_test_file, generate_simulation_test_file_sweep
+from .initialization import initialize_nodes, initialize_channels, initialize_exclusion_zones, get_organ_module_flow_rate_bottom, get_total_chip_flow_rate_out
+from .channel_operations import calculate_minimal_length, assign_initial_lengths, update_length, adapt_width, limit_width, sort_channels_by_required_length_increase, calculate_pressure_drop
+from .modified_nodal_analysis import iterative_nodal_analysis
+from .rerouting import reroute_channel, is_in_exclusion, check_overlap
+from .channel_meanders import initialize_bounding_boxes, define_meander, assign_extra_length_to_connected_channel
+from .graph_output import plot_nodes, plot_network, plot_pressure_network #, plot_network_3d
+from .export import export_to_dxf
+from .evaluation import generate_simulation_test_file, generate_simulation_test_file_sweep
 
-from config import Config
+from .config import Config
 
 cfg = Config() # TODO maybe move the class definitions to Config 
 eps = cfg.eps
@@ -141,7 +141,7 @@ def main(cfg):
     # Export DXF and plot
     export_result = None
 
-    if hasattr(cfg, 'output_dxf_path') and cfg.output_dxf_path:
+    if cfg.output_dxf_path:
         # Backend mode: save files
         print(f"Backend mode: saving DXF to {cfg.output_dxf_path}")
 

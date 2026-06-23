@@ -1,8 +1,8 @@
 # This script is to generate Simulation Test Files or Evaluate Channel Geometry
 
 import math
-from utils import calculate_hydraulic_resistance, calculate_hydraulic_resistance_cylinder
-from channel_operations import get_layer_switch_resistance_correction
+from .utils import calculate_hydraulic_resistance, calculate_hydraulic_resistance_cylinder
+from .channel_operations import get_layer_switch_resistance_correction
 
 def get_layer_switch_length_correction(channel, nodes, channel_dim, viscosity):
     """

@@ -1,7 +1,7 @@
 import numpy as np
 # import csv # TODO maybe remove this once we no longer analyze via a csv file
 
-from channel_operations import calculate_minimal_length
+from .channel_operations import calculate_minimal_length
 
 eps = 1e-12
 

@@ -9,7 +9,7 @@ import matplotlib as mpl
 # from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.ticker import LogLocator, FormatStrFormatter
 
-from channel_operations import get_longest_segment
+from .channel_operations import get_longest_segment
 
 def plot_nodes(nodes):
     """
@@ -501,4 +501,3 @@ def plot_pressure_nodes(nodes, channels):
 
     # Display the plot
     plt.show()
-

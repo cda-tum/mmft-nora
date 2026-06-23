@@ -1,7 +1,7 @@
 import math
 
-from utils import calculate_hydraulic_resistance, calculate_hydraulic_resistance_cylinder
-from config import Config
+from .utils import calculate_hydraulic_resistance, calculate_hydraulic_resistance_cylinder
+from .config import Config
 
 cfg = Config()
 eps = cfg.eps
@@ -132,4 +132,3 @@ class BoundingBox:
     def get_y_max(self):
         y_max = max(self.node_1[1], self.node_2[1], self.node_3[1], self.node_4[1])
         return y_max
-
