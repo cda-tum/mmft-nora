@@ -19,17 +19,34 @@ The tool supports automatic placement of modules and connects them through a mic
 
 ## System Requirements
 
-This tool requires Python. All necessary packages can be installed with:
+This tool requires Python. Create the repository-wide Python environment in
+the location used by the command-line tool, backend, and GUI development
+scripts:
 
 ```bash
-pip install -r requirements.txt
+python -m venv backend/venv
+source backend/venv/bin/activate
+python -m pip install -r requirements.txt
 ```
 
 ## Usage
-To run the tool, execute:
+Run the command-line tool from the repository root as a Python module:
+
 ```bash
-python main.py
+backend/venv/bin/python -m src.main
 ```
+
+If the virtual environment is already activated, the equivalent command is:
+
+```bash
+python -m src.main
+```
+
+Do not run `python src/main.py` directly. The source now uses package-relative
+imports, so it must be executed with `-m src.main` from the repository root.
+The default command uses the settings in `src/config.py`, writes DXF output
+under `results/`, generates `GeneratedTest.cpp`, and opens a Matplotlib
+preview window.
 
 Extra parameters, including the number of modules in each direction, the dilution, minimal channel distances and spacing as well as channel width and height can be defined in the config.py script.
 
@@ -50,9 +67,8 @@ make
 ./dropletTest --gtest_filter=GradientGenerator
 ```
 
-To execute the tests for the code, change to the tests directory and execute:
+To execute the tests for the code, run from the repository root:
 ```bash
-python -m pytest -v
+backend/venv/bin/python -m pytest -v
 ```
-Make sure the venv is activated.
-
+You can also activate the venv first and then run `python -m pytest -v`.
