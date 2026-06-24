@@ -1,0 +1,119 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+  release:
+    types: [published]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+  KNOWN_HOSTS: ${{ secrets.KNOWN_HOSTS }}
+  CDA_HOST_NAME: tueicda-cda.srv.mwn.de
+  CDA_USER_NAME: web-user
+  CDA_TARGET_DIR: /var/www/cda/app/mmft-nora/
+  VERSION_FILE: mmft-nora_version.txt
+
+jobs:
+  deploy:
+    name: Build and Upload
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Run fast Python tests
+        run: python -m pytest tests/test_config.py tests/test_basic_calculations.py tests/test_initial_network.py -q
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: gui/package-lock.json
+
+      - name: Install GUI dependencies
+        working-directory: gui
+        run: npm ci
+
+      - name: Build GUI
+        working-directory: gui
+        run: npm run build
+
+      - name: Create version file
+        run: echo "version = \"${GITHUB_REF_NAME}-${GITHUB_SHA::7}\"" > "${VERSION_FILE}"
+
+      - name: Set up SSH access
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${KNOWN_HOSTS}" >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+          echo "${DEPLOY_KEY}" > ~/.ssh/my_rsync_key
+          chmod 600 ~/.ssh/my_rsync_key
+          echo "IdentityFile ~/.ssh/my_rsync_key" >> ~/.ssh/config
+          chmod 600 ~/.ssh/config
+
+      - name: Sync application files
+        run: |
+          rsync -avz --delete \
+            --rsync-path="mkdir -p ${CDA_TARGET_DIR} && rsync" \
+            --exclude="${VERSION_FILE}" \
+            --exclude=".git/" \
+            --exclude="nora-venv/" \
+            --exclude="backend/venv/" \
+            --exclude="backend/output/" \
+            --exclude="gui/node_modules/" \
+            --exclude="results/" \
+            --exclude="__pycache__/" \
+            --exclude=".pytest_cache/" \
+            -e "ssh -i ~/.ssh/my_rsync_key" \
+            . "${CDA_USER_NAME}@${CDA_HOST_NAME}:${CDA_TARGET_DIR}"
+
+      - name: Create virtualenv and install Python dependencies on server
+        run: |
+          ssh -i ~/.ssh/my_rsync_key -o StrictHostKeyChecking=yes "${CDA_USER_NAME}@${CDA_HOST_NAME}" << EOF
+            set -e
+
+            APP_DIR="${CDA_TARGET_DIR}"
+            VENV_DIR="\$APP_DIR/nora-venv"
+
+            cd "\$APP_DIR"
+
+            if [ ! -d "\$VENV_DIR" ]; then
+              python3 -m venv "\$VENV_DIR"
+            fi
+
+            source "\$VENV_DIR/bin/activate"
+            python -m pip install --upgrade pip
+            python -m pip install -r "\$APP_DIR/requirements.txt"
+
+            mkdir -p "\$APP_DIR/backend/output" "\$APP_DIR/results"
+            chmod +x "\$APP_DIR/start.sh" "\$APP_DIR/backend/cleanup_outputs.sh"
+          EOF
+
+      - name: Sync version file to trigger backend restart
+        run: |
+          rsync -avz \
+            --rsync-path="mkdir -p ${CDA_TARGET_DIR} && rsync" \
+            -e "ssh -i ~/.ssh/my_rsync_key" \
+            "${VERSION_FILE}" "${CDA_USER_NAME}@${CDA_HOST_NAME}:${CDA_TARGET_DIR}"

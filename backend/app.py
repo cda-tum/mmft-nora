@@ -212,25 +212,20 @@ async def generate_design(req: GenerateRequest):
         if not preview_path.exists():
             raise HTTPException(500, f"Preview PNG not created at {preview_path}")
 
-        # dxf_files = [
-        #     DxfFile(name=p.name, url=f"/api/download/dxf/{job_id}/{p.name}")
-        #     for p in _list_job_dxfs(job_id)
-        # ]
-
         all_dxf_paths = [Path(p) for p in export_result["all"]]
         combined_path = Path(export_result["combined"])
 
         dxf_files = [
             DxfFile(
                 name=p.name,
-                url=f"/api/download/dxf/{job_id}/{p.name}",
+                url=f"api/download/dxf/{job_id}/{p.name}",
             )
             for p in all_dxf_paths
         ]
 
         return GenerateResponseV2(
-            dxfUrl=f"/api/download/dxf/{job_id}/{combined_path.name}",
-            previewUrl=f"/api/download/preview/{job_id}",
+            dxfUrl=f"api/download/dxf/{job_id}/{combined_path.name}",
+            previewUrl=f"api/download/preview/{job_id}",
             jobId=job_id,
             dxfFiles=dxf_files,
             colorByFlow=req.colorByFlow,
@@ -270,7 +265,7 @@ async def list_dxfs(job_id: str):
     files = _list_job_dxfs(job_id)
     if not files:
         raise HTTPException(404, "Job not found")
-    return [DxfFile(name=p.name, url=f"/api/download/dxf/{job_id}/{p.name}") for p in files]
+    return [DxfFile(name=p.name, url=f"api/download/dxf/{job_id}/{p.name}") for p in files]
 
 
 @app.get("/api/download/preview/{job_id}")
@@ -302,7 +297,7 @@ async def rerender_preview(job_id: str, colorByFlow: bool = False):
         color_by_flow=colorByFlow,
     )
     _write_job_meta(job_id, colorByFlow)
-    return {"previewUrl": f"/api/download/preview/{job_id}", "colorByFlow": bool(colorByFlow)}
+    return {"previewUrl": f"api/download/preview/{job_id}", "colorByFlow": bool(colorByFlow)}
 
 
 @app.get("/health")
