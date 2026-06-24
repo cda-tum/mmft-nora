@@ -11,3 +11,7 @@ uvicorn[standard]>=0.30.0
 pydantic>=2.9.0
 python-multipart>=0.0.9
 
+# Test tooling
+# Newer pytest releases import readline during startup, which crashes with the
+# current macOS/Conda Python build used by the local backend venv.
+pytest>=7.4,<8
