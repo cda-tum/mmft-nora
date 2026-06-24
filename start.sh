@@ -6,12 +6,13 @@ VENV_DIR="${VENV_DIR:-$APP_DIR/nora-venv}"
 HOST="${HOST:-127.0.0.1}"
 PORT="${PORT:-5003}"
 
-echo "[INFO $(date +'%Y-%m-%dT%H:%M:%S')] starting MMFT NORA backend on ${HOST}:${PORT}" >> /tmp/mmft-nora-deploy.log
-
 cd "$APP_DIR"
 mkdir -p "$APP_DIR/backend/output" "$APP_DIR/results"
 
-export MPLCONFIGDIR="${MPLCONFIGDIR:-/tmp/mmft-nora-matplotlib}"
+LOG_FILE="${LOG_FILE:-$APP_DIR/backend/output/mmft-nora.log}"
+echo "[INFO $(date +'%Y-%m-%dT%H:%M:%S')] starting MMFT NORA backend on ${HOST}:${PORT}" >> "$LOG_FILE" || true
+
+export MPLCONFIGDIR="${MPLCONFIGDIR:-$APP_DIR/backend/output/matplotlib}"
 mkdir -p "$MPLCONFIGDIR"
 
 source "$VENV_DIR/bin/activate"

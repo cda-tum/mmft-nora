@@ -1,12 +1,14 @@
 import uuid
+import os
 from pathlib import Path
 import sys
 import json
 import pickle
-from typing import List, Optional
+from typing import List
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 # Add repository root to path so the src package imports consistently.
@@ -17,6 +19,26 @@ from src.main import main as run_design_generator
 from src.graph_output import plot_network
 
 app = FastAPI(title="OoC Design Generator API")
+
+PUBLIC_PREFIXES = tuple(
+    prefix.strip().rstrip("/")
+    for prefix in os.getenv("NORA_PUBLIC_PREFIXES", "/app/mmft-nora,/mmft-nora").split(",")
+    if prefix.strip()
+)
+GUI_DIST_DIR = Path(__file__).parent.parent / "gui" / "dist"
+GUI_INDEX = GUI_DIST_DIR / "index.html"
+
+
+@app.middleware("http")
+async def strip_public_prefix(request, call_next):
+    path = request.scope.get("path", "")
+    for prefix in PUBLIC_PREFIXES:
+        if path == prefix:
+            return RedirectResponse(f"{prefix}/")
+        if path.startswith(f"{prefix}/"):
+            request.scope["path"] = path[len(prefix):] or "/"
+            break
+    return await call_next(request)
 
 app.add_middleware(
     CORSMiddleware,
@@ -303,3 +325,23 @@ async def rerender_preview(job_id: str, colorByFlow: bool = False):
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+if (GUI_DIST_DIR / "assets").exists():
+    app.mount("/assets", StaticFiles(directory=GUI_DIST_DIR / "assets"), name="assets")
+
+
+@app.get("/")
+async def serve_gui():
+    if not GUI_INDEX.exists():
+        raise HTTPException(404, "GUI build not found. Run `npm run build` in gui/ first.")
+    return FileResponse(GUI_INDEX)
+
+
+@app.get("/{path:path}")
+async def serve_gui_fallback(path: str):
+    if path.startswith(("api/", "docs", "openapi.json", "redoc")):
+        raise HTTPException(404, "Not found")
+    if Path(path).suffix:
+        raise HTTPException(404, "Static asset not found")
+    return await serve_gui()
