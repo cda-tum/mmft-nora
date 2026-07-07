@@ -15,7 +15,7 @@
     "@mui/icons-material": "^5.16.7",
     "@mui/joy": "^5.0.0-beta.48",
     "@types/seedrandom": "^3.0.8",
-    "makerjs": "^0.18.1",
+    "makerjs": "^0.19.2",
     "nanoid": "^5.0.7",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -36,6 +36,13 @@
     "globals": "^15.9.0",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.0.1",
-    "vite": "^5.4.5"
+    "vite": "^6.4.3"
+  },
+  "overrides": {
+    "shell-quote": "1.8.4",
+    "uuid": "11.1.1",
+    "postcss": "8.5.10",
+    "js-yaml": "4.2.0",
+    "@babel/core": "7.29.6"
   }
 }
