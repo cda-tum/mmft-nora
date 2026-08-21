@@ -6,7 +6,7 @@ import {
   FormLabel,
   Input
 } from "@mui/joy"
-import { ReactNode, useId } from "react"
+import { ReactNode, useEffect, useId, useState } from "react"
 import InfoOutlined from "@mui/icons-material/InfoOutlined"
 import { SxProps } from "@mui/joy/styles/types"
 
@@ -30,6 +30,7 @@ export type UnitProps = {
   marginY?: string | number
 
   unitType?: UnitType
+  allowDecimal?: boolean
 
   onChange?: (fieldValue: string, parsedValue: number | undefined) => void
 }
@@ -38,18 +39,22 @@ export type UnitProps = {
 /* UNIT PARSER                                */
 /* ───────────────────────────────────────────── */
 
-function parseWithUnits(raw: string, unitType: UnitType): number | undefined {
+function parseWithUnits(raw: string, unitType: UnitType, allowDecimal: boolean): number | undefined {
   if (!raw) return undefined
-  const cleaned = raw.trim().toLowerCase()
+  const cleaned = raw.trim().toLowerCase().replace(",", ".")
+  const numberPattern = allowDecimal
+    ? "(?:\\d+\\.?\\d*|\\.\\d+)(?:e[+-]?\\d+)?"
+    : "\\d+"
 
   // ───── UNITLESS (e.g. dilution, ratios) ─────
   if (unitType === "unitless") {
+    if (!new RegExp(`^${numberPattern}$`, "i").test(cleaned)) return undefined
     const v = parseFloat(cleaned)
     return isNaN(v) ? undefined : v
   }
 
   // ───── GENERAL NUMBER + UNIT ─────
-  const re = /^([+-]?\d*\.?\d+(?:e[+-]?\d+)?)(\s*[a-zμμ·\/]+)?$/i
+  const re = new RegExp(`^(${numberPattern})(\\s*[a-zμμ·\\/]+)?$`, "i")
   const match = cleaned.match(re)
   if (!match) return undefined
 
@@ -77,6 +82,15 @@ function parseWithUnits(raw: string, unitType: UnitType): number | undefined {
   return undefined
 }
 
+function isAllowedInput(raw: string, unitType: UnitType, allowDecimal: boolean): boolean {
+  if (raw === "") return true
+  if (allowDecimal) return true
+  if (unitType === "length") {
+    return /^\d*\s*[a-zμμ·\/]*$/i.test(raw)
+  }
+  return /^\d*$/.test(raw)
+}
+
 /* ───────────────────────────────────────────── */
 /* COMPONENT                                 */
 /* ───────────────────────────────────────────── */
@@ -84,6 +98,16 @@ function parseWithUnits(raw: string, unitType: UnitType): number | undefined {
 export function UnitInput(props: UnitProps) {
   const id = useId()
   const unitType = props.unitType ?? "length"
+  const allowDecimal = props.allowDecimal ?? false
+  const externalValue = props.value ?? props.defaultValue ?? ""
+  const [fieldValue, setFieldValue] = useState(externalValue)
+  const [isEditing, setIsEditing] = useState(false)
+
+  useEffect(() => {
+    if (!isEditing) {
+      setFieldValue(externalValue)
+    }
+  }, [externalValue, isEditing])
 
   const unitLabel =
     unitType === "length" ? "µm" :
@@ -91,15 +115,28 @@ export function UnitInput(props: UnitProps) {
     ""
 
   const handleValueChange = (value: string) => {
-    const parsed = parseWithUnits(value, unitType)
-    props.onChange?.(value, parsed)
+    if (!isAllowedInput(value, unitType, allowDecimal)) {
+      return
+    }
+    setFieldValue(value)
+    const parsed = parseWithUnits(value, unitType, allowDecimal)
+    if (parsed !== undefined) {
+      props.onChange?.(value, parsed)
+    }
+  }
+
+  const handleBlur = () => {
+    setIsEditing(false)
+    if (parseWithUnits(fieldValue, unitType, allowDecimal) === undefined) {
+      setFieldValue(externalValue)
+    }
   }
 
   const shared = {
-    value: props.value,
     placeholder: props.placeholder ?? props.label,
     id,
-    defaultValue: props.defaultValue,
+    onFocus: () => setIsEditing(true),
+    onBlur: handleBlur,
     sx: {
       "& input": { textAlign: "right" },
       ...props.sx
@@ -118,7 +155,7 @@ export function UnitInput(props: UnitProps) {
         freeSolo
         disableClearable
         options={props.autocompleteValues.map(o => o.toString())}
-        inputValue={props.value}
+        inputValue={fieldValue}
         {...shared}
         onInputChange={(_, value) => {
           if (value !== null) handleValueChange(value)
@@ -127,6 +164,7 @@ export function UnitInput(props: UnitProps) {
     ) : (
       <Input
         {...shared}
+        value={fieldValue}
         onChange={e => handleValueChange(e.target.value)}
         style={{ flexGrow: 1 }}
       />
