@@ -331,12 +331,14 @@ export function UserInterface() {
                 <UnitInput
                   label="Dilution X"
                   unitType="unitless"
+                  allowDecimal
                   value={String(input.parameters.dilutionX)}
                   onChange={(_, v) => updateParameter("dilutionX", v ?? 0)}
                 />
                 <UnitInput
                   label="Dilution Y"
                   unitType="unitless"
+                  allowDecimal
                   value={String(input.parameters.dilutionY)}
                   onChange={(_, v) => updateParameter("dilutionY", v ?? 0)}
                 />
@@ -353,6 +355,7 @@ export function UserInterface() {
               <UnitInput
                 label="Viscosity"
                 unitType="viscosity"
+                allowDecimal
                 value={String(input.parameters.viscosity)}
                 onChange={(_, v) => updateParameter("viscosity", v ?? 0)}
               />

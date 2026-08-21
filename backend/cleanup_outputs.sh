@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Example server cron entry:
-# 0 3 * * * bash /var/www/cda/app/mmft-nora/backend/cleanup_outputs.sh >> /var/log/mmft-nora-cleanup.log 2>&1
+# 0 3 * * * bash /var/www/cda/app/mmft-nora/backend/cleanup_outputs.sh >> /var/www/cda/app/mmft-nora/backend/output/mmft-nora-cleanup.log 2>&1
 
 APP_DIR="${APP_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
 MAX_AGE_DAYS="${MAX_AGE_DAYS:-2}"
