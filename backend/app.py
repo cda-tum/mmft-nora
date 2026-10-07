@@ -4,6 +4,11 @@ from pathlib import Path
 import sys
 import json
 import pickle
+import asyncio
+import logging
+import math
+import time
+from contextlib import suppress
 from typing import List
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, RedirectResponse
@@ -15,7 +20,7 @@ from pydantic import BaseModel, Field
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.config import Config
-from src.main import main as run_design_generator
+from src.main import LayoutConvergenceError, main as run_design_generator
 from src.graph_output import plot_network
 
 app = FastAPI(title="OoC Design Generator API")
@@ -50,6 +55,68 @@ app.add_middleware(
 
 OUTPUT_DIR = Path(__file__).parent / "output"
 OUTPUT_DIR.mkdir(exist_ok=True)
+
+logger = logging.getLogger("uvicorn.error")
+JOB_TIMEOUT_SECONDS = float(os.getenv("NORA_JOB_TIMEOUT_SECONDS", "120"))
+MAX_CONCURRENT_JOBS = int(os.getenv("NORA_MAX_CONCURRENT_JOBS", "1"))
+if not math.isfinite(JOB_TIMEOUT_SECONDS) or JOB_TIMEOUT_SECONDS <= 0 or MAX_CONCURRENT_JOBS < 1:
+    raise ValueError("NoRA job timeout and concurrency limit must be positive and finite")
+WORKER_SLOTS = asyncio.Semaphore(MAX_CONCURRENT_JOBS)
+
+
+async def _run_worker(operation: str, job_id: str, parameters: dict) -> dict:
+    # ponytail: limit per API process; keep one Uvicorn worker for the configured server-wide limit.
+    if WORKER_SLOTS.locked():
+        raise HTTPException(503, "The design generator is busy. Please try again shortly.", headers={"Retry-After": "5"})
+
+    async with WORKER_SLOTS:
+        started = time.monotonic()
+        process = None
+        logger.info("Starting %s job=%s parameters=%s", operation, job_id, json.dumps(parameters, sort_keys=True))
+        try:
+            process = await asyncio.create_subprocess_exec(
+                sys.executable, "-m", "backend.worker", operation, job_id,
+                cwd=Path(__file__).resolve().parent.parent,
+                env={**os.environ, "MPLBACKEND": "Agg"},
+                stdin=asyncio.subprocess.PIPE,
+                stdout=asyncio.subprocess.PIPE,
+                # Keep diagnostics in the service log, not the JSON response pipe.
+            )
+            payload = {"parameters": parameters, "output_dir": str(OUTPUT_DIR.resolve())}
+            stdout, _ = await asyncio.wait_for(
+                process.communicate(json.dumps(payload).encode()), timeout=JOB_TIMEOUT_SECONDS,
+            )
+            if process.returncode != 0:
+                raise RuntimeError(f"Worker exited with status {process.returncode}")
+            result = json.loads(stdout)
+            if "error" in result:
+                logger.warning("Failed %s job=%s: %s", operation, job_id, result["error"])
+                raise HTTPException(result["status_code"], result["error"])
+            logger.info("Completed %s job=%s elapsed=%.2fs", operation, job_id, time.monotonic() - started)
+            return result
+        except asyncio.TimeoutError:
+            logger.warning("Timed out %s job=%s pid=%s after %.2fs", operation, job_id, process.pid, JOB_TIMEOUT_SECONDS)
+            raise HTTPException(
+                504, f"The calculation exceeded the {JOB_TIMEOUT_SECONDS:g}-second time limit. "
+                "Try fewer modules or adjust the layout spacing.",
+            )
+        except asyncio.CancelledError:
+            logger.info("Cancelled %s job=%s", operation, job_id)
+            raise
+        except HTTPException:
+            raise
+        except Exception:
+            logger.exception("Worker failed %s job=%s", operation, job_id)
+            raise HTTPException(500, "The calculation failed. Please check the parameters and try again.")
+        finally:
+            if process is not None:
+                if process.returncode is None:
+                    with suppress(ProcessLookupError):
+                        process.kill()
+                # Reap the worker even when its HTTP task is cancelled.
+                await asyncio.shield(process.communicate())
+                for key, suffix in (("preview", "png"), ("meta", "json")):
+                    _job_paths(job_id)[key].with_suffix(f".{process.pid}.tmp.{suffix}").unlink(missing_ok=True)
 
 
 def _job_paths(job_id: str) -> dict:
@@ -97,7 +164,9 @@ def _write_job_meta(job_id: str, color_by_flow: bool) -> None:
         "combinedDxf": paths["dxf_combined"].name,
         "preview": paths["preview"].name,
     }
-    paths["meta"].write_text(json.dumps(meta, indent=2))
+    temporary = paths["meta"].with_suffix(f".{os.getpid()}.tmp.json")
+    temporary.write_text(json.dumps(meta, indent=2))
+    temporary.replace(paths["meta"])
 
 
 def _render_preview_png(*, job_id: str, nodes, channels, exclusion_zones, cfg: Config, color_by_flow: bool) -> Path:
@@ -117,8 +186,13 @@ def _render_preview_png(*, job_id: str, nodes, channels, exclusion_zones, cfg: C
         color_by_flow=color_by_flow,
         chip_layout=cfg.chip_layout,
     )
-    fig.savefig(paths["preview"], dpi=150, bbox_inches="tight")
-    plt.close(fig)
+    temporary = paths["preview"].with_suffix(f".{os.getpid()}.tmp.png")
+    try:
+        fig.savefig(temporary, dpi=150, bbox_inches="tight")
+        temporary.replace(paths["preview"])
+    finally:
+        plt.close(fig)
+        temporary.unlink(missing_ok=True)
     return paths["preview"]
 
 
@@ -164,6 +238,17 @@ class GenerateResponseV2(GenerateResponse):
 async def generate_design(req: GenerateRequest):
     """Generate microfluidic design from GUI parameters."""
     job_id = str(uuid.uuid4())[:8]
+    try:
+        return await _run_worker("generate", job_id, req.model_dump())
+    except (Exception, asyncio.CancelledError):
+        # Failed jobs must not leave partially generated downloads behind.
+        for prefix in ("design", "preview", "job"):
+            for path in OUTPUT_DIR.glob(f"{prefix}_{job_id}*"):
+                path.unlink(missing_ok=True)
+        raise
+
+
+def _generate_design(req: GenerateRequest, job_id: str):
 
     try:
         # Map GUI params to Config
@@ -253,12 +338,10 @@ async def generate_design(req: GenerateRequest):
             colorByFlow=req.colorByFlow,
         )
 
+    except LayoutConvergenceError as e:
+        raise HTTPException(422, str(e)) from e
     except HTTPException:
         raise
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(500, f"Design generation error: {str(e)}")
 
 
 @app.get("/api/download/dxf/{job_id}")
@@ -301,6 +384,12 @@ async def download_preview(job_id: str):
 
 @app.post("/api/preview/{job_id}")
 async def rerender_preview(job_id: str, colorByFlow: bool = False):
+    if not _job_paths(job_id)["pickle"].exists():
+        raise HTTPException(404, "Job data not found")
+    return await _run_worker("preview", job_id, {"colorByFlow": colorByFlow})
+
+
+def _rerender_preview(job_id: str, colorByFlow: bool = False):
     """Re-render preview for an existing job (fast), toggling layer vs flow-rate coloring."""
     paths = _job_paths(job_id)
     if not paths["pickle"].exists():
