@@ -131,12 +131,12 @@ def main(cfg):
         # for channel_name, channel in channels.items():
         for channel_name, channel, _ in sorted_channels:
             if channel.fixed_resistance is None: # the fixed channels are not adapted 
-                    channel.meander_nodes, required_spacing_increase, leftover_length = define_meander(channel, nodes, cfg.channel_dim, bounding_boxes, layout_tolerance=cfg.layout_tolerance)
+                    channel.meander_nodes, required_spacing_increase, leftover_length = define_meander(channel, nodes, cfg.channel_dim, bounding_boxes, numeric_tolerance=cfg.numeric_tolerance)
                     
-                    if required_spacing_increase > cfg.layout_tolerance:
+                    if required_spacing_increase > cfg.numeric_tolerance:
                         # check if the length of the channel can be covered by a connected channel (for this use case specifically the channel connecting N_{module}_sw N_{module}_out_sw)
-                        required_spacing_increase_leftover, connected_channel = assign_extra_length_to_connected_channel(nodes, channels, channel.node1, channel.node2, channel, required_spacing_increase, leftover_length, bounding_boxes, cfg.viscosity, cfg.channel_dim, layout_tolerance=cfg.layout_tolerance)
-                        if required_spacing_increase_leftover > cfg.layout_tolerance:
+                        required_spacing_increase_leftover, connected_channel = assign_extra_length_to_connected_channel(nodes, channels, channel.node1, channel.node2, channel, required_spacing_increase, leftover_length, bounding_boxes, cfg.viscosity, cfg.channel_dim, numeric_tolerance=cfg.numeric_tolerance)
+                        if required_spacing_increase_leftover > cfg.numeric_tolerance:
                             spacing_x, spacing_y, spacing_out = increase_spacing(channel, channel_name, cfg.channel_dim, required_spacing_increase, spacing_x, spacing_y, spacing_out)
                             need_restart = True
                             break

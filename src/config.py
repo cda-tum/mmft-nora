@@ -2,7 +2,7 @@ import math
 from dataclasses import dataclass, field
 from typing import Any
 
-DEFAULT_LAYOUT_TOLERANCE = 1e-9
+DEFAULT_NUMERIC_TOLERANCE = 1e-9
 
 
 def _default_channel_dim() -> dict[str, float]:
@@ -128,14 +128,14 @@ class Config:
     output_preview_path: str | None = None
 
     # Layout distances are in meters; keep this separate from solver tolerances.
-    layout_tolerance: float = DEFAULT_LAYOUT_TOLERANCE
+    numeric_tolerance: float = DEFAULT_NUMERIC_TOLERANCE
     max_layout_attempts: int = 100
 
     def __post_init__(self) -> None:
         if self.max_layout_attempts < 1:
             raise ValueError("max_layout_attempts must be positive")
-        if not math.isfinite(self.layout_tolerance) or self.layout_tolerance <= 0:
-            raise ValueError("layout_tolerance must be finite and positive")
+        if not math.isfinite(self.numeric_tolerance) or self.numeric_tolerance <= 0:
+            raise ValueError("numeric_tolerance must be finite and positive")
         if self.spacing_x is None:
             self.spacing_x = 5 * self.channel_dim["min_distance"]
         if self.spacing_y is None:

@@ -3,7 +3,7 @@ import math
 eps = 1e-12
 
 from .utils import calculate_hydraulic_resistance
-from .config import DEFAULT_LAYOUT_TOLERANCE
+from .config import DEFAULT_NUMERIC_TOLERANCE
 from .mf_geometry_components import BoundingBox
 from .channel_operations import calculate_minimal_length, check_connection_no_per_node, get_longest_segment
 
@@ -301,7 +301,7 @@ def get_nodes_for_meander(channel, coord_start, coord_end, meander_length_one_wa
 
     return meander_nodes, bounding_box
 
-def define_meander(channel, nodes, channel_dim, bounding_boxes, *, layout_tolerance=DEFAULT_LAYOUT_TOLERANCE):
+def define_meander(channel, nodes, channel_dim, bounding_boxes, *, numeric_tolerance=DEFAULT_NUMERIC_TOLERANCE):
     '''
     Main function of adding meanders to a channel. Gets called for each channel separately and calculates the available number and length of meanders.
     '''
@@ -374,10 +374,10 @@ def define_meander(channel, nodes, channel_dim, bounding_boxes, *, layout_tolera
         # Check how many (if any) meanders can fit into the available space, because the last meander needs no extra min channel distance it is added to the available space
         required_space_for_meandering = required_no_of_meanders * meander_height
         required_spacing_increase = required_space_for_meandering - (space_for_meandering + min_channel_distance)
-        if required_spacing_increase > layout_tolerance:
+        if required_spacing_increase > numeric_tolerance:
             # THE REQUIRED EXTRA LENGTH WILL NOT FIT
             required_spacing_increase = required_no_of_meanders * meander_height - (space_for_meandering + min_channel_distance)
-            if required_spacing_increase > layout_tolerance:
+            if required_spacing_increase > numeric_tolerance:
                 print(f"The required number of meanders does not fit into the available space.", channel.node1, channel.node2, "required spacing increase:", required_spacing_increase)
         else:
             # meander_length = required_extra_length / required_no_of_meanders
@@ -388,7 +388,7 @@ def define_meander(channel, nodes, channel_dim, bounding_boxes, *, layout_tolera
 
     return meander_nodes, required_spacing_increase, required_extra_length # TODO pass only what would need to be added (i.e. the meanders are split across both channels)
 
-def assign_extra_length_to_connected_channel(nodes, channels, node1, node2, channel, required_spacing_increase, extra_length, bounding_boxes, viscosity, channel_dim, *, layout_tolerance=DEFAULT_LAYOUT_TOLERANCE): # WIP
+def assign_extra_length_to_connected_channel(nodes, channels, node1, node2, channel, required_spacing_increase, extra_length, bounding_boxes, viscosity, channel_dim, *, numeric_tolerance=DEFAULT_NUMERIC_TOLERANCE): # WIP
     """
     Add extra meanders to connected channels.
     """
@@ -404,9 +404,9 @@ def assign_extra_length_to_connected_channel(nodes, channels, node1, node2, chan
             a = (1 - (192 * alternative_channel.height / (math.pi**5 * alternative_channel.width) * math.tanh(math.pi * alternative_channel.width / (2 * alternative_channel.height))))
             extra_length_new = a * required_extra_resistance * alternative_channel.width * alternative_channel.height**3 / (12 * viscosity)
             alternative_channel.length += extra_length_new
-        alternative_channel.meander_nodes, leftover_spacing_increase, _ = define_meander(alternative_channel, nodes, channel_dim, bounding_boxes, layout_tolerance=layout_tolerance)
+        alternative_channel.meander_nodes, leftover_spacing_increase, _ = define_meander(alternative_channel, nodes, channel_dim, bounding_boxes, numeric_tolerance=numeric_tolerance)
 
-        if leftover_spacing_increase <= layout_tolerance:
+        if leftover_spacing_increase <= numeric_tolerance:
             successful = True
             print(f"Assigning extra length of {extra_length*1e3:.2f} mm to connected channel between nodes {alternative_channel.node1} and {alternative_channel.node2}. New length: {alternative_channel.length*1e3:.2f} mm")
             channel.length -= extra_length # remove the length that was reassigned to another channel to facilitate testing
