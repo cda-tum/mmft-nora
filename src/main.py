@@ -55,7 +55,7 @@ def main(cfg):
         if layout_attempts >= cfg.max_layout_attempts:
             raise LayoutConvergenceError(
                 f"The layout did not converge after {cfg.max_layout_attempts} attempts. "
-                "Try fewer modules or adjust the layout spacing."
+                "Please reduce the number of incorporated modules or adjust the layout spacing, pump connection distances, or default channel dimensions."
             )
         layout_attempts += 1
         logger.info("Layout attempt %s/%s", layout_attempts, cfg.max_layout_attempts)
