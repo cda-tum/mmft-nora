@@ -65,7 +65,6 @@ WORKER_SLOTS = asyncio.Semaphore(MAX_CONCURRENT_JOBS)
 
 
 async def _run_worker(operation: str, job_id: str, parameters: dict) -> dict:
-    # ponytail: limit per API process; keep one Uvicorn worker for the configured server-wide limit.
     if WORKER_SLOTS.locked():
         raise HTTPException(503, "The design generator is busy. Please try again shortly.", headers={"Retry-After": "5"})
 
