@@ -58,10 +58,9 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 
 logger = logging.getLogger("uvicorn.error")
 JOB_TIMEOUT_SECONDS = float(os.getenv("NORA_JOB_TIMEOUT_SECONDS", "120"))
-MAX_CONCURRENT_JOBS = int(os.getenv("NORA_MAX_CONCURRENT_JOBS", "1"))
-if not math.isfinite(JOB_TIMEOUT_SECONDS) or JOB_TIMEOUT_SECONDS <= 0 or MAX_CONCURRENT_JOBS < 1:
-    raise ValueError("NoRA job timeout and concurrency limit must be positive and finite")
-WORKER_SLOTS = asyncio.Semaphore(MAX_CONCURRENT_JOBS)
+if not math.isfinite(JOB_TIMEOUT_SECONDS) or JOB_TIMEOUT_SECONDS <= 0:
+    raise ValueError("NoRA job timeout must be positive and finite")
+WORKER_SLOTS = asyncio.Semaphore(1)
 
 
 async def _run_worker(operation: str, job_id: str, parameters: dict) -> dict:
@@ -81,9 +80,8 @@ async def _run_worker(operation: str, job_id: str, parameters: dict) -> dict:
                 stdout=asyncio.subprocess.PIPE,
                 # Keep diagnostics in the service log, not the JSON response pipe.
             )
-            payload = {"parameters": parameters, "output_dir": str(OUTPUT_DIR.resolve())}
             stdout, _ = await asyncio.wait_for(
-                process.communicate(json.dumps(payload).encode()), timeout=JOB_TIMEOUT_SECONDS,
+                process.communicate(json.dumps(parameters).encode()), timeout=JOB_TIMEOUT_SECONDS,
             )
             if process.returncode != 0:
                 raise RuntimeError(f"Worker exited with status {process.returncode}")
@@ -339,8 +337,6 @@ def _generate_design(req: GenerateRequest, job_id: str):
 
     except LayoutConvergenceError as e:
         raise HTTPException(422, str(e)) from e
-    except HTTPException:
-        raise
 
 
 @app.get("/api/download/dxf/{job_id}")
