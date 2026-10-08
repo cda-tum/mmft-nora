@@ -16,4 +16,4 @@ export MPLCONFIGDIR="${MPLCONFIGDIR:-$APP_DIR/backend/output/matplotlib}"
 mkdir -p "$MPLCONFIGDIR"
 
 source "$VENV_DIR/bin/activate"
-exec python -m uvicorn backend.app:app --host "$HOST" --port "$PORT" --proxy-headers
+exec python -m uvicorn backend.app:app --host "$HOST" --port "$PORT" --proxy-headers --timeout-graceful-shutdown 5

@@ -1,5 +1,7 @@
 # Define channels for non-linear Gradient Generator for barrier OoCs
 import matplotlib.pyplot as plt
+
+import logging
 import time
 
 from .initialization import initialize_nodes, initialize_channels, initialize_exclusion_zones, get_organ_module_flow_rate_bottom, get_total_chip_flow_rate_out
@@ -15,6 +17,10 @@ from .config import Config
 
 cfg = Config() # TODO maybe move the class definitions to Config 
 eps = cfg.eps
+logger = logging.getLogger(__name__)
+
+class LayoutConvergenceError(ValueError):
+    """The layout cannot be completed within its retry limit."""
 
 def increase_spacing(channel, channel_name, channel_dim, required_spacing_increase, spacing_x, spacing_y, spacing_out):
     """
@@ -51,8 +57,16 @@ def main(cfg):
 
     spacing_x, spacing_y, spacing_out = (cfg.spacing_x, cfg.spacing_y, cfg.spacing_out)
     need_restart = True
+    layout_attempts = 0
 
     while need_restart:
+        if layout_attempts >= cfg.max_layout_attempts:
+            raise LayoutConvergenceError(
+                f"The layout did not converge after {cfg.max_layout_attempts} attempts. "
+                "Please reduce the number of incorporated modules or adjust the layout spacing, pump connection distances, or default channel dimensions."
+            )
+        layout_attempts += 1
+        logger.info("Layout attempt %s/%s", layout_attempts, cfg.max_layout_attempts)
         need_restart = False
 
         channels.clear()
@@ -128,12 +142,12 @@ def main(cfg):
         # for channel_name, channel in channels.items():
         for channel_name, channel, _ in sorted_channels:
             if channel.fixed_resistance is None: # the fixed channels are not adapted 
-                    channel.meander_nodes, required_spacing_increase, leftover_length = define_meander(channel, nodes, cfg.channel_dim, bounding_boxes)
+                    channel.meander_nodes, required_spacing_increase, leftover_length = define_meander(channel, nodes, cfg.channel_dim, bounding_boxes, numeric_tolerance=cfg.numeric_tolerance)
                     
-                    if required_spacing_increase > 0 + eps:
+                    if required_spacing_increase > cfg.numeric_tolerance:
                         # check if the length of the channel can be covered by a connected channel (for this use case specifically the channel connecting N_{module}_sw N_{module}_out_sw)
-                        required_spacing_increase_leftover, connected_channel = assign_extra_length_to_connected_channel(nodes, channels, channel.node1, channel.node2, channel, required_spacing_increase, leftover_length, bounding_boxes, cfg.viscosity, cfg.channel_dim)
-                        if required_spacing_increase_leftover > 0 + eps:
+                        required_spacing_increase_leftover, connected_channel = assign_extra_length_to_connected_channel(nodes, channels, channel.node1, channel.node2, channel, required_spacing_increase, leftover_length, bounding_boxes, cfg.viscosity, cfg.channel_dim, numeric_tolerance=cfg.numeric_tolerance)
+                        if required_spacing_increase_leftover > cfg.numeric_tolerance:
                             spacing_x, spacing_y, spacing_out = increase_spacing(channel, channel_name, cfg.channel_dim, required_spacing_increase, spacing_x, spacing_y, spacing_out)
                             need_restart = True
                             
