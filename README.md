@@ -6,15 +6,15 @@
   <img src="https://www.cda.cit.tum.de/research/microfluidics/logo-microfluidics-toolkit.png" width="60%" alt="MMFT Logo">
 </p>
 
-This Python-based tool automates the design of microfluidic gradient generators for connecting multiple modules, such as organs-on-a-chip. It was developed in collaboration between the [Chair for Design Automation](https://www.cda.cit.tum.de/) at the [Technical University of Munich (TUM)](https://www.tum.de/) and the [BIOS group](https://www.utwente.nl/en/eemcs/bios/) at the [University of Twente](https://www.utwente.nl/en/), as part of the [Munich Microfluidic Toolkit (MMFT)](https://www.cda.cit.tum.de/research/microfluidics/munich-microfluidics-toolkit/).
+NORA is a microfluidic design automation workflow for simultaneous network-aware hydraulic optimization and fabrication-aware layout generation. Given a network specification with device footprints and hydraulic operating requirements, it optimizes channel resistances and component placement to produce a fabrication-ready fluidic circuit board design. It was developed in collaboration between the [Chair for Design Automation](https://www.cda.cit.tum.de/) at the [Technical University of Munich (TUM)](https://www.tum.de/) and the [BIOS group](https://www.utwente.nl/en/eemcs/bios/) at the [University of Twente](https://www.utwente.nl/en/), as part of the [Munich Microfluidic Toolkit (MMFT)](https://www.cda.cit.tum.de/research/microfluidics/munich-microfluidics-toolkit/).
 
-The tool supports automatic placement of modules and connects them through a microfluidic network capable of generating concentration gradients in both the x- and y-directions. Layouts are designed to follow ISO standards and are, where feasible, sized to fit standard well plate dimensions.
+The tool includes an initialization for the automatic placement of organ-on-chip modules and connects them through a microfluidic network capable of generating concentration gradients in both the x- and y-directions. Layouts are designed to follow ISO standards and are, where feasible, sized to fit standard well plate dimensions.
 
 ## Features
 
-- Automated placement and routing of modules, e.g., organ-on-a-chip designs  
-- Gradient generation in both x and y directions  
-- Configurable parameters: number of modules, dilution settings, spacing, channel dimensions, and more  
+- Generates fabrication-ready microfluidic circuit board layouts
+- Simultaneous optimization of channel resistances and component placement for desired flow behaviour
+- Supports device footprints and hydraulic operating constraints, e.g. for herring bone mixers or organ-on-chips
 - ISO-compatible layouts optimized for standard well plate footprints  
 
 
