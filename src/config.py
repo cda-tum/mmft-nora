@@ -6,7 +6,7 @@ from typing import Any
 def _default_channel_dim() -> dict[str, float]:
     return {
         "width": 150e-6,
-        "max_width": 1.5e-3, # If required, this can be updated to 2e-3.
+        "max_width": 2.0e-3, # If required, this can be updated to 2e-3.
         "height": 150e-6,
         "max_height": 1.4e-3,
         "min_distance": 0.4e-3, # Based on Laurens input and experiments.
@@ -61,8 +61,8 @@ def _default_chip_layout() -> dict[str, float]:
 class Config:
     eps: float = 1e-12
     two_gradients: bool = True # Do we investigate gradients of 2 drugs at the same time
-    no_of_modules_x: int = 3 # min value is always 1
-    no_of_modules_y: int = 1 # min value is always 1
+    no_of_modules_x: int = 2 # min value is always 1
+    no_of_modules_y: int = 3 # min value is always 1
 
     # e.g. 3x3 modules
     # A0----B0----C0
@@ -88,8 +88,8 @@ class Config:
 
     # These spacing defaults tune the initial guess and help keep channel
     # dimensions within their configured bounds during convergence.
-    pump_connection_distance_in: float = 6e-3 # Keep above the 5.5e-3 1-to-9 mixing module length for the 3x1 design.
-    pump_connection_distance_out: float = 8e-3
+    pump_connection_distance_in: float = 5.5e-3 # Keep above the 5.5e-3 1-to-9 mixing module length for the 3x1 design.
+    pump_connection_distance_out: float = 9e-3
     inlet_distance: float = 3e-3 # distance between the inlets for the concentration and the media 1
 
     # Define the spacing of the modules and the length of the outflow channels
@@ -127,11 +127,11 @@ class Config:
 
     def __post_init__(self) -> None:
         if self.spacing_x is None:
-            self.spacing_x = 5 * self.channel_dim["min_distance"]
+            self.spacing_x = 2 * self.channel_dim["min_distance"]
         if self.spacing_y is None:
             self.spacing_y = 2 * self.channel_dim["min_distance"]
         if self.spacing_out is None:
-            self.spacing_out = 2 * self.channel_dim["min_distance"]
+            self.spacing_out = 1 * self.channel_dim["min_distance"]
         if self.distance_module_mixing is None:
             self.distance_module_mixing = self.channel_dim["spacer"]
 
