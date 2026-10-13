@@ -201,23 +201,35 @@ def limit_width(channel, channel_dim, viscosity):
         raise ValueError(f"Channel exceeds the maximum height limit after width adjustment!")
     
     step_height = channel_dim["height"] / 5 # TODO this could be a parameter 
-    lower_height_step = math.ceil((required_height - channel_dim["height"]) / step_height)
+    lower_height_step = max(0, math.ceil((required_height - channel_dim["height"]) / step_height))
 
     new_height = channel_dim["height"] + lower_height_step * step_height
+    max_height = channel_dim["max_height"]
+    last_tried_height = None
 
-    while new_height < channel_dim["max_height"]:
-        # f = lambda width: 
-        f_at_Wmax = calculate_hydraulic_resistance(channel_dim["max_width"], new_height, channel.length, viscosity) - resistance_target
+    def try_height(height):
+        f_at_Wmax = calculate_hydraulic_resistance(channel_dim["max_width"], height, channel.length, viscosity) - resistance_target
         if f_at_Wmax > 0:
-            new_height += step_height
-            continue
+            return False
 
-        f_w = lambda width: calculate_hydraulic_resistance(width, new_height, channel.length, viscosity) - resistance_target
+        f_w = lambda width: calculate_hydraulic_resistance(width, height, channel.length, viscosity) - resistance_target
         new_width = bisect_root(f_w, 1e-15, channel_dim["max_width"])
 
         channel.width = new_width
-        channel.height = new_height
-        return
+        channel.height = height
+        return True
+
+    while new_height <= max_height:
+        last_tried_height = new_height
+        if try_height(new_height):
+            return
+        new_height += step_height
+
+    if last_tried_height is None or not math.isclose(last_tried_height, max_height, rel_tol=0.0, abs_tol=eps):
+        if try_height(max_height):
+            return
+
+    raise ValueError(f"Channel exceeds the maximum height limit after width adjustment!")
     
 def sort_channels_by_required_length_increase(channels: dict, nodes: dict, channel_dim: dict):
     """

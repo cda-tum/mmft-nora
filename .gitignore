@@ -114,3 +114,4 @@ convergence.csv
 
 # Backend output files
 backend/output/
+benchmark_results.csv

@@ -197,6 +197,24 @@ def add_rerouted_segments(channel, nodes, segments, arcs, skip_segment=None):
 
     half_width = width / 2  # used for extension + perpendicular offset
 
+    def _start_edge_vertices(quad_vertices, ux, uy):
+        if abs(ux) >= abs(uy):
+            if ux > 0:
+                return quad_vertices[1], quad_vertices[2]
+            return quad_vertices[3], quad_vertices[0]
+        if uy > 0:
+            return quad_vertices[0], quad_vertices[1]
+        return quad_vertices[2], quad_vertices[3]
+
+    def _end_edge_vertices(quad_vertices, ux, uy):
+        if abs(ux) >= abs(uy):
+            if ux > 0:
+                return quad_vertices[3], quad_vertices[0]
+            return quad_vertices[1], quad_vertices[2]
+        if uy > 0:
+            return quad_vertices[2], quad_vertices[3]
+        return quad_vertices[0], quad_vertices[1]
+
     for i in range(1, len(path)):
         # # Start and end points of this centerline segment
         # x_start, y_start, z_start = path[i - 1]
@@ -266,20 +284,14 @@ def add_rerouted_segments(channel, nodes, segments, arcs, skip_segment=None):
         #       ---0-----1
 
         if p0 == nodes[channel.node1].coordinates:
-            if channel.vertical:
-                # print(v_bottom_start, nodes[channel.node1].quad_vertices[0])
-                v_bottom_start = nodes[channel.node1].quad_vertices[1] # double check
-                v_top_start = nodes[channel.node1].quad_vertices[0] # double check
-            else:
-                v_bottom_start = nodes[channel.node1].quad_vertices[2]
-                v_top_start = nodes[channel.node1].quad_vertices[1]
+            v_top_start, v_bottom_start = _start_edge_vertices(nodes[channel.node1].quad_vertices, ux, uy)
+        elif p0 == nodes[channel.node2].coordinates:
+            v_top_start, v_bottom_start = _start_edge_vertices(nodes[channel.node2].quad_vertices, ux, uy)
+
+        if p1 == nodes[channel.node1].coordinates:
+            v_bottom_end, v_top_end = _end_edge_vertices(nodes[channel.node1].quad_vertices, ux, uy)
         elif p1 == nodes[channel.node2].coordinates:
-                if channel.vertical:
-                    v_bottom_end = nodes[channel.node2].quad_vertices[2]
-                    v_top_end = nodes[channel.node2].quad_vertices[3]
-                else:
-                    v_bottom_end = nodes[channel.node2].quad_vertices[3]
-                    v_top_end = nodes[channel.node2].quad_vertices[0]
+            v_bottom_end, v_top_end = _end_edge_vertices(nodes[channel.node2].quad_vertices, ux, uy)
 
         # Save segment
         segments.append([v_top_start, v_bottom_start, v_bottom_end, v_top_end, layer, height])

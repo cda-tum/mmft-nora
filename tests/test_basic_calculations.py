@@ -1,8 +1,9 @@
 # tests/test_basic_calculations.py
 import math
+import pytest
 
 from src.utils import calculate_hydraulic_resistance, bisect_root
-from src.channel_operations import calculate_minimal_length
+from src.channel_operations import calculate_minimal_length, limit_width
 from src.mf_geometry_components import Channel, Node, BoundingBox
 from src.config import Config
 from src.channel_meanders import get_meander_length, bounding_box_from_channel
@@ -28,6 +29,56 @@ def test_bisect_root_simple():
     f = lambda x: x**2 - 4
     root = bisect_root(f, 0, 3)
     assert math.isclose(root, 2.0, rel_tol=1e-9)
+
+def _channel_with_target_resistance(channel_dim, target_resistance, viscosity=1.0, length=1.0):
+    nodes = {
+        'n1': Node(connection_no=1, multi_layer=False, coordinates=(0.0, 0.0, 0.0)),
+        'n2': Node(connection_no=1, multi_layer=False, coordinates=(1.0, 0.0, 0.0)),
+    }
+    f_width = lambda width: calculate_hydraulic_resistance(width, channel_dim["height"], length, viscosity) - target_resistance
+    width = bisect_root(f_width, channel_dim["max_width"], 1000.0)
+    channel = Channel(nodes, node1='n1', node2='n2', flow_rate=1.0, layer=0, width=width, height=channel_dim["height"])
+    channel.length = length
+    return channel
+
+def test_limit_width_tries_max_height_when_step_overshoots():
+    viscosity = 1.0
+    channel_dim = {"width": 1.0, "height": 1.0, "max_width": 4.0, "max_height": 1.5}
+    target_resistance = calculate_hydraulic_resistance(
+        channel_dim["max_width"],
+        channel_dim["max_height"],
+        length=1.0,
+        viscosity=viscosity,
+    )
+    channel = _channel_with_target_resistance(channel_dim, target_resistance, viscosity=viscosity)
+
+    limit_width(channel, channel_dim, viscosity)
+
+    assert math.isclose(channel.height, channel_dim["max_height"], rel_tol=0.0, abs_tol=1e-12)
+    assert channel.width <= channel_dim["max_width"] + 1e-9
+    assert math.isclose(
+        calculate_hydraulic_resistance(channel.width, channel.height, channel.length, viscosity),
+        target_resistance,
+        rel_tol=1e-9,
+    )
+
+def test_limit_width_raises_when_no_height_can_match_target():
+    viscosity = 1.0
+    channel_dim = {"width": 1.0, "height": 1.0, "max_width": 4.0, "max_height": 1.5}
+    simplified_resistance_at_max = (
+        12 * viscosity / (channel_dim["max_width"] * channel_dim["max_height"]**3)
+    )
+    actual_resistance_at_max = calculate_hydraulic_resistance(
+        channel_dim["max_width"],
+        channel_dim["max_height"],
+        length=1.0,
+        viscosity=viscosity,
+    )
+    target_resistance = (simplified_resistance_at_max + actual_resistance_at_max) / 2
+    channel = _channel_with_target_resistance(channel_dim, target_resistance, viscosity=viscosity)
+
+    with pytest.raises(ValueError, match="maximum height"):
+        limit_width(channel, channel_dim, viscosity)
 
 def test_minimal_length_2d_channel():
     nodes = {
