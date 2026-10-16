@@ -14,7 +14,7 @@ The tool includes an initialization for the automatic placement of organ-on-chip
 
 - Generates fabrication-ready microfluidic circuit board layouts
 - Simultaneous optimization of channel resistances and component placement for desired flow behaviour
-- Supports device footprints and hydraulic operating constraints, e.g. for herring bone mixers or organ-on-chips
+- Supports module footprints and hydraulic operating constraints, e.g. for herringbone mixers or organ-on-chips
 - ISO-compatible layouts optimized for standard well plate footprints  
 
 
