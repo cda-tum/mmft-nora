@@ -2,7 +2,6 @@
 import matplotlib.pyplot as plt
 
 import logging
-import time
 
 from .initialization import initialize_nodes, initialize_channels, initialize_exclusion_zones, get_organ_module_flow_rate_bottom, get_total_chip_flow_rate_out
 from .channel_operations import calculate_minimal_length, assign_initial_lengths, update_length, adapt_width, limit_width, sort_channels_by_required_length_increase, calculate_pressure_drop
@@ -45,15 +44,9 @@ def refresh_saved_connection_no(nodes, channels):
         
     
 def main(cfg):
-    start_time = time.perf_counter()
-
     channels  = {}
     nodes = {}
     exclusion_zones = {} # TODO figure out where to move this
-
-    spacing_iterations = 0
-    total_mna_iterations = 0
-    final_mna_iterations = 0
 
     spacing_x, spacing_y, spacing_out = (cfg.spacing_x, cfg.spacing_y, cfg.spacing_out)
     need_restart = True
@@ -113,10 +106,7 @@ def main(cfg):
         if cfg.no_of_modules_x * cfg.no_of_modules_y > 1:
 
             pressures, iterations = iterative_nodal_analysis(nodes, channels, cfg.viscosity, flow_rate_out, cfg.no_of_modules_x, cfg.no_of_modules_y, cfg.channel_dim)
-            
-            total_mna_iterations += iterations
-            final_mna_iterations = iterations 
-            
+
             # Assign computed pressures to nodes
             for node_name, pressure in pressures.items():
                 nodes[node_name].pressure = pressure
@@ -150,10 +140,6 @@ def main(cfg):
                         if required_spacing_increase_leftover > cfg.numeric_tolerance:
                             spacing_x, spacing_y, spacing_out = increase_spacing(channel, channel_name, cfg.channel_dim, required_spacing_increase, spacing_x, spacing_y, spacing_out)
                             need_restart = True
-                            
-                            spacing_iterations += 1
-                            need_restart = True
-                            
                             break
                         else:
                             # add the info to the channel for testing that the meander length was transferred successfully to the connected channel
@@ -165,7 +151,6 @@ def main(cfg):
                         # spacing_x, spacing_y, spacing_out = increase_spacing(channel, channel_name, cfg.channel_dim, required_spacing_increase, spacing_x, spacing_y, spacing_out)
                         # need_restart = True  # Restart the main function to reinitialize nodes and channels with the new spacing
                         # break
-
     
     # Export DXF and plot
     export_result = None
@@ -190,22 +175,14 @@ def main(cfg):
         # fig = plot_network(nodes, channels, cfg.organ_module["size_x"], cfg.organ_module["size_y"], exclusion_zones, cfg.channel_dim)
         # import matplotlib.pyplot as plt
         # plt.show()
+        
     
-    computation_time = time.perf_counter() - start_time
-
-    metrics = {
-        "computation_time": computation_time,
-        "spacing_iterations": spacing_iterations,
-        "final_mna_iterations": final_mna_iterations,
-        "total_mna_iterations": total_mna_iterations,
-    }
-    
-    return nodes, channels, exclusion_zones, export_result, metrics
+    return nodes, channels, exclusion_zones, export_result
 
                 
 if __name__ == "__main__":
     cfg = Config()
-    nodes, channels, exclusion_zones, export_result, metrics = main(cfg)
+    nodes, channels, exclusion_zones, export_result = main(cfg)
 
     # Generate a 1D simulation file for the mmft-modular-1D-simulator, an abstract simulation tool for microfluidic channel networks
     # generate_simulation_test_file("GeneratedTest.cpp", nodes, channels, outlet_pump_flow_rate=(cfg.no_of_modules_x * cfg.no_of_modules_y * cfg.organ_module["flow_rate"] * 2), viscosity=cfg.viscosity)
