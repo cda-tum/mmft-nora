@@ -105,6 +105,7 @@ dmypy.json
 GeneratedTest.cpp
 convergence.csv
 *.dxf
+!exemplary_output_files/*.dxf
 *.svg
 *.dwl2
 *.dwl
