@@ -27,6 +27,7 @@ The tool includes an initialization for the automatic placement of organ-on-chip
 - [Command-Line Usage](#command-line-usage)
 - [Running the GUI Locally](#running-the-gui-locally)
 - [Tests and 1D Simulation](#tests-and-1d-simulation)
+- [Post Processing Files](#post-processing-files)
 
 ## Quick Tutorial (GUI)
  
@@ -44,6 +45,7 @@ The [GUI](https://www.cda.cit.tum.de/app/mmft-nora/) lets you generate a design 
 ## Exporting the Generated Files
  
 The tool generates multiple **DXF** files, one for each layer and height, respectively, and one stack of all created channels for a better overview. The naming of each of these 2D DFX files includes height and layer and facilitates subsequent fabrciation.
+Exemplary **DXF** output files are available in the folder *exemplary_output_files*.
 
 ### From the GUI
  
@@ -159,3 +161,7 @@ backend/venv/bin/python -m pytest -v
 ```
 
 If the virtual environment is already activated, run `python -m pytest -v`.
+
+## Post Processing Files
+
+In the associated manuscript the fabrication and operation of a 1x3 NORA design is detailed. Microscopy images were taken for evaluation. The scripts used to process the microscopy images, alongside the input data and intermediate data structures are available in the folder *post_processing*.
